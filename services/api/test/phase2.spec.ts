@@ -6,6 +6,7 @@ import { ProcedureService } from '../src/modules/procedure/procedure.service';
 import { MagicLinkService } from '../src/modules/magiclink/magiclink.service';
 import { MockMagicLinkSender } from '../src/modules/magiclink/magiclink.sender';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { enableBypass } from './helpers/rls';
 
 describe('Phase 2 - Procedures + Customers + Magic Links', () => {
   let partnerService: PartnerService;
@@ -41,6 +42,7 @@ describe('Phase 2 - Procedures + Customers + Magic Links', () => {
     procedureService = module.get(ProcedureService);
     prisma = module.get(PrismaService);
     await prisma.$connect();
+    await enableBypass(prisma);
 
     // Setup: register + scope + accept + approve + release
     const reg = await partnerService.register({
@@ -69,6 +71,7 @@ describe('Phase 2 - Procedures + Customers + Magic Links', () => {
     await prisma.partnerContract.deleteMany({ where: { partner_id: partnerId } });
     await prisma.partnerScopeRequest.deleteMany({ where: { partner_id: partnerId } });
     await prisma.partnerUser.deleteMany({ where: { email: testEmail } });
+    await prisma.partnerBranding.deleteMany({ where: { partner_id: partnerId } });
     await prisma.partnerTenant.deleteMany({ where: { partner_id: partnerId } });
     await prisma.partner.deleteMany({ where: { id: partnerId } });
     await prisma.$disconnect();

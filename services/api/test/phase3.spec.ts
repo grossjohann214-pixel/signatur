@@ -10,6 +10,7 @@ import { Web3Service } from '../src/modules/web3/web3.service';
 import { AuditService } from '../src/modules/audit/audit.service';
 import { EvidenceService } from '../src/modules/evidence/evidence.service';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { enableBypass } from './helpers/rls';
 
 describe('Phase 3 - Customer Flow', () => {
   let partnerService: PartnerService;
@@ -48,6 +49,7 @@ describe('Phase 3 - Customer Flow', () => {
     magicLinkService = module.get(MagicLinkService);
     prisma = module.get(PrismaService);
     await prisma.$connect();
+    await enableBypass(prisma);
 
     // Full setup: register -> scope -> accept -> approve -> release
     const reg = await partnerService.register({
@@ -94,6 +96,7 @@ describe('Phase 3 - Customer Flow', () => {
     await prisma.partnerContract.deleteMany({ where: { partner_id: partnerId } });
     await prisma.partnerScopeRequest.deleteMany({ where: { partner_id: partnerId } });
     await prisma.partnerUser.deleteMany({ where: { email: testEmail } });
+    await prisma.partnerBranding.deleteMany({ where: { partner_id: partnerId } });
     await prisma.partnerTenant.deleteMany({ where: { partner_id: partnerId } });
     await prisma.partner.deleteMany({ where: { id: partnerId } });
     await prisma.$disconnect();

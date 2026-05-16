@@ -3,11 +3,15 @@
   "compilerOptions": {
     "module": "node16",
     "target": "ES2021",
-    "lib": ["ES2021"],
+    "lib": [
+      "ES2021"
+    ],
     "moduleResolution": "node16",
     "outDir": "./dist",
     "rootDir": "../..",
-    "types": ["node"],
+    "types": [
+      "node"
+    ],
     "sourceMap": true,
     "removeComments": true,
     "incremental": true,
@@ -20,8 +24,18 @@
     "skipLibCheck": true,
     "composite": false,
     "declaration": false,
-    "declarationMap": false
+    "declarationMap": false,
+    "isolatedModules": true
   },
-  "include": ["src/**/*.ts", "../../packages/**/*.ts"],
-  "exclude": ["node_modules", "dist", "test", "**/*.spec.ts", "prisma/**/*.ts"]
+  "include": [
+    "src/**/*.ts",
+    "../../packages/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "test",
+    "**/*.spec.ts",
+    "prisma/**/*.ts"
+  ]
 }

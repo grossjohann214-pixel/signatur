@@ -1,62 +1,67 @@
-import { Controller, Post, Body, Get, Req, UseGuards } from '@nestjs/common';
-import { PartnerService } from './partner.service';
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  Ip,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { TenantGuard } from '../tenant/tenant.guard';
-import { RegisterPartnerDto } from './dto/register-partner.dto';
-import { ScopeRequestDto } from './dto/scope-request.dto';
+import { PartnerService } from './partner.service';
+import { CreatePartnerDto } from './dto/create-partner.dto';
 
 @Controller('partners')
 export class PartnerController {
   constructor(private readonly partnerService: PartnerService) {}
 
-  // PUBLIC - no auth
   @Post('register')
-  async register(@Body() body: RegisterPartnerDto) {
+  register(@Body() body: CreatePartnerDto) {
     return this.partnerService.register(body);
   }
 
   @UseGuards(JwtAuthGuard, TenantGuard)
   @Get('me')
-  async me(@Req() req: any) {
-    return this.partnerService.findById(req.user.partner_id);
+  me(@Req() req: any) {
+    return this.partnerService.me(req.user);
   }
 
   @UseGuards(JwtAuthGuard, TenantGuard)
   @Get('me/status')
-  async status(@Req() req: any) {
-    return this.partnerService.getStatus(req.user.partner_id);
+  status(@Req() req: any) {
+    return this.partnerService.status(req.user);
   }
 
   @UseGuards(JwtAuthGuard, TenantGuard)
   @Post('me/scope-request')
-  async createScopeRequest(@Req() req: any, @Body() body: ScopeRequestDto) {
-    return this.partnerService.createScopeRequest(
-      req.user.partner_id,
-      req.user.tenant_id,
-      body,
-    );
+  createScopeRequest(@Req() req: any, @Body() body: any) {
+    return this.partnerService.createScopeRequest(req.user, body);
   }
 
   @UseGuards(JwtAuthGuard, TenantGuard)
   @Get('me/scope-request')
-  async getScopeRequests(@Req() req: any) {
-    return this.partnerService.getScopeRequests(req.user.partner_id);
+  getScopeRequest(@Req() req: any) {
+    return this.partnerService.getScopeRequest(req.user);
   }
 
   @UseGuards(JwtAuthGuard, TenantGuard)
   @Get('me/generated-contract')
-  async getContract(@Req() req: any) {
-    return this.partnerService.getGeneratedContract(req.user.partner_id);
+  generatedContract(@Req() req: any) {
+    return this.partnerService.generatedContract(req.user);
   }
 
   @UseGuards(JwtAuthGuard, TenantGuard)
   @Post('me/accept-contract')
-  async acceptContract(@Req() req: any) {
-    return this.partnerService.acceptContract(
-      req.user.partner_id,
-      req.user.id,
-      req.ip,
-      req.headers?.['user-agent'],
-    );
+  acceptContract(
+    @Req() req: any,
+    @Ip() ip: string,
+    @Headers('user-agent') userAgent?: string,
+  ) {
+    return this.partnerService.acceptContract(req.user, {
+      ip,
+      userAgent,
+    });
   }
 }

@@ -11,7 +11,6 @@ export default function PartnerDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
-  const [actionError, setActionError] = useState("");
   const [success, setSuccess] = useState("");
 
   useEffect(() => {
@@ -21,119 +20,115 @@ export default function PartnerDetailPage() {
       .finally(() => setLoading(false));
   }, [partnerId]);
 
-  async function handleAction(action: "approve" | "reject" | "request-changes") {
+  async function handleAction(action: string, label: string) {
+    if (action === "release-production" && !confirm("Liberar producao para este parceiro?")) return;
     setActionLoading(true);
-    setActionError("");
+    setError("");
     setSuccess("");
     try {
       await api(`/admin/partners/${partnerId}/${action}`, { method: "POST" });
-      setSuccess(`Parceiro ${action === "approve" ? "aprovado" : action === "reject" ? "rejeitado" : "solicitados ajustes"}!`);
+      setSuccess(`${label} com sucesso!`);
       setTimeout(() => router.push("/partners"), 1500);
     } catch (err: any) {
-      setActionError(err.message);
+      setError(err.message);
     } finally {
       setActionLoading(false);
     }
   }
 
-  async function handleRelease() {
-    if (!confirm("Liberar producao para este parceiro?")) return;
-    setActionLoading(true);
-    setActionError("");
-    try {
-      await api(`/admin/partners/${partnerId}/release-production`, { method: "POST" });
-      setSuccess("Producao liberada!");
-      setTimeout(() => router.push("/partners"), 1500);
-    } catch (err: any) {
-      setActionError(err.message);
-    } finally {
-      setActionLoading(false);
-    }
+  if (loading) {
+    return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--fg3)", fontFamily: "var(--mono)", fontSize: 11 }}>Carregando...</div>;
   }
-
-  if (loading) return <div className="flex min-h-screen items-center justify-center">Carregando...</div>;
-  if (!detail) return <div className="flex min-h-screen items-center justify-center">Nao encontrado</div>;
+  if (!detail) {
+    return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--fg3)" }}>Nao encontrado</div>;
+  }
 
   const { partner, scopes, contract } = detail;
 
   return (
-    <div className="mx-auto max-w-4xl p-8">
-      <a href="/partners" className="mb-4 text-admin-600 hover:underline">← Voltar</a>
+    <div style={{ position: "relative", zIndex: 1, padding: 32, maxWidth: 820, margin: "0 auto" }} className="sgl-fade-in">
+      <a href="/partners" style={{ color: "var(--c)", fontSize: 12 }}>&larr; Voltar</a>
+      <h1 className="sgl-page-title" style={{ marginTop: 12, marginBottom: 24 }}>{partner.company_name}</h1>
 
-      <h1 className="mb-6 text-2xl font-bold text-admin-700">{partner.company_name}</h1>
+      {error && <div className="sgl-alert sgl-alert-r">
+        <span style={{ color: "var(--r)", fontSize: 12 }}>{error}</span>
+      </div>}
+      {success && <div className="sgl-alert sgl-alert-g">
+        <span style={{ color: "var(--g)", fontSize: 12 }}>{success}</span>
+      </div>}
 
-      {error && <p className="mb-4 rounded bg-red-50 p-3 text-sm text-red-600">{error}</p>}
-      {actionError && <p className="mb-4 rounded bg-red-50 p-3 text-sm text-red-600">{actionError}</p>}
-      {success && <p className="mb-4 rounded bg-green-50 p-3 text-sm text-green-600">{success}</p>}
-
-      <div className="mb-6 space-y-4 rounded-lg bg-white p-6 shadow">
-        <h2 className="font-semibold">Dados da Empresa</h2>
-        <p><strong>CNPJ:</strong> {partner.cnpj || "N/A"}</p>
-        <p><strong>Nome Fantasia:</strong> {partner.trading_name || "N/A"}</p>
-        <p><strong>Status:</strong> {partner.status}</p>
-        <p><strong>Criado em:</strong> {new Date(partner.created_at).toLocaleDateString("pt-BR")}</p>
+      <div className="sgl-card" style={{ marginBottom: 16 }}>
+        <div className="sgl-section-label" style={{ marginBottom: 16 }}>Dados da Empresa</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <div><div className="sgl-hash-label">CNPJ</div><div style={{ fontSize: 14, color: "var(--fg)" }}>{partner.cnpj || "N/A"}</div></div>
+          <div><div className="sgl-hash-label">Nome Fantasia</div><div style={{ fontSize: 14, color: "var(--fg)" }}>{partner.trading_name || "N/A"}</div></div>
+          <div><div className="sgl-hash-label">Status</div><div style={{ fontSize: 14, color: "var(--fg)" }}>{partner.status}</div></div>
+          <div><div className="sgl-hash-label">Criado em</div><div style={{ fontSize: 14, color: "var(--fg)" }}>{new Date(partner.created_at).toLocaleDateString("pt-BR")}</div></div>
+        </div>
       </div>
 
       {scopes && scopes.length > 0 && (
-        <div className="mb-6 rounded-lg bg-white p-6 shadow">
-          <h2 className="mb-4 font-semibold">Escopos Solicitados</h2>
-          <ul className="space-y-2">
-            {scopes.map((s: any) => (
-              <li key={s.id} className="text-sm">
-                <strong>{s.request_type}</strong> — {s.status} ({new Date(s.created_at).toLocaleDateString("pt-BR")})
-              </li>
-            ))}
-          </ul>
+        <div className="sgl-card" style={{ marginBottom: 16 }}>
+          <div className="sgl-section-label" style={{ marginBottom: 12 }}>Escopos Solicitados</div>
+          {scopes.map((s: any) => (
+            <div key={s.id} style={{ fontSize: 13, color: "var(--fg2)", padding: "6px 0", borderBottom: "1px solid var(--bd)" }}>
+              <strong style={{ color: "var(--fg)" }}>{s.request_type}</strong> — {s.status}
+            </div>
+          ))}
         </div>
       )}
 
       {contract && (
-        <div className="mb-6 rounded-lg bg-white p-6 shadow">
-          <h2 className="mb-4 font-semibold">Contrato</h2>
-          <p className="mb-2 text-sm"><strong>Status:</strong> {contract.status}</p>
-          <p className="mb-2 text-xs text-gray-400"><strong>Hash:</strong> {contract.contract_hash}</p>
-          {contract.accepted_at && (
-            <p className="text-sm text-green-600"><strong>Aceito em:</strong> {new Date(contract.accepted_at).toLocaleDateString("pt-BR")}</p>
-          )}
+        <div className="sgl-card" style={{ marginBottom: 16 }}>
+          <div className="sgl-section-label" style={{ marginBottom: 12 }}>Contrato</div>
+          <p style={{ fontSize: 13, color: "var(--fg2)", marginBottom: 8 }}>Status: <strong style={{ color: "var(--fg)" }}>{contract.status}</strong></p>
+          <div className="sgl-hash-box">
+            <div className="sgl-hash-label">Contract Hash</div>
+            <div className="sgl-hash-val">{contract.contract_hash}</div>
+          </div>
         </div>
       )}
 
-      <div className="rounded-lg bg-white p-6 shadow">
-        <h2 className="mb-4 font-semibold">Acoes de Aprovacao</h2>
-        <div className="space-y-3">
+      <div className="sgl-card">
+        <div className="sgl-section-label" style={{ marginBottom: 16 }}>Acoes de Aprovacao</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {partner.status === "pending_review" && (
             <>
-              <button onClick={() => handleAction("request-changes")} disabled={actionLoading}
-                className="w-full rounded-md bg-orange-500 px-4 py-2 text-white hover:bg-orange-600 disabled:opacity-50">
-                {actionLoading ? "Processando..." : "Solicitar Ajustes"}
+              <button className="sgl-btn-o" disabled={actionLoading}
+                onClick={() => handleAction("request-changes", "Ajustes solicitados")}
+                style={{ width: "100%", justifyContent: "center" }}>
+                Solicitar Ajustes
               </button>
-              <button onClick={() => handleAction("approve")} disabled={actionLoading}
-                className="w-full rounded-md bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:opacity-50">
-                {actionLoading ? "Processando..." : "Aprovar"}
+              <button className="sgl-btn" disabled={actionLoading}
+                onClick={() => handleAction("approve", "Parceiro aprovado")}
+                style={{ width: "100%", justifyContent: "center" }}>
+                Aprovar
               </button>
-              <button onClick={() => handleAction("reject")} disabled={actionLoading}
-                className="w-full rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700 disabled:opacity-50">
-                {actionLoading ? "Processando..." : "Rejeitar"}
+              <button className="sgl-btn sgl-btn-danger" disabled={actionLoading}
+                onClick={() => handleAction("reject", "Parceiro rejeitado")}
+                style={{ width: "100%", justifyContent: "center" }}>
+                Rejeitar
               </button>
             </>
           )}
-
           {partner.status === "contract_accepted" && (
-            <button onClick={() => handleAction("approve")} disabled={actionLoading}
-              className="w-full rounded-md bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:opacity-50">
-              {actionLoading ? "Processando..." : "Aprovar"}
+            <button className="sgl-btn" disabled={actionLoading}
+              onClick={() => handleAction("approve", "Parceiro aprovado")}
+              style={{ width: "100%", justifyContent: "center" }}>
+              Aprovar
             </button>
           )}
-
           {partner.status === "approved" && !partner.production_released && (
-            <button onClick={handleRelease} disabled={actionLoading}
-              className="w-full rounded-md bg-admin-600 px-4 py-2 text-white hover:bg-admin-700 disabled:opacity-50">
-              {actionLoading ? "Processando..." : "Liberar Producao"}
+            <button className="sgl-btn" disabled={actionLoading}
+              onClick={() => handleAction("release-production", "Producao liberada")}
+              style={{ width: "100%", justifyContent: "center" }}>
+              Liberar Producao
             </button>
           )}
-
           {partner.production_released && (
-            <p className="rounded-md bg-green-50 p-3 text-center text-sm font-medium text-green-700">Producao ja liberada</p>
+            <div className="sgl-alert sgl-alert-g">
+              <span style={{ color: "var(--g)", fontSize: 12 }}>Producao ja liberada</span>
+            </div>
           )}
         </div>
       </div>

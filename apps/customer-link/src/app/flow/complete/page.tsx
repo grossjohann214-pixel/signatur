@@ -11,48 +11,47 @@ export default function CompletePage() {
 
   useEffect(() => {
     const linkId = sessionStorage.getItem("linkId");
-    if (!linkId) {
-      setError("Link invalido");
-      setLoading(false);
-      return;
-    }
+    if (!linkId) { setError("Link invalido"); setLoading(false); return; }
     api(`/flow/${linkId}/complete`, { method: "POST" })
-      .then((data) => {
-        setResult(data);
-        sessionStorage.clear();
-      })
-      .catch((err) => {
-        setError(err.message);
-      })
+      .then((data) => { setResult(data); sessionStorage.clear(); })
+      .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="flex min-h-screen items-center justify-center">Finalizando...</div>;
+  if (loading) return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--fg3)", fontFamily: "var(--mono)", fontSize: 11 }}>Finalizando...</div>;
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
-      <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-lg text-center">
+    <div className="sgl-auth-wrap">
+      <div className="sgl-auth-card sgl-fade-in" style={{ textAlign: "center" }}>
         {error ? (
           <>
-            <h1 className="mb-4 text-2xl font-bold text-red-600">Erro</h1>
-            <p className="text-gray-600 mb-4">{error}</p>
-            <button onClick={() => router.push("/")}
-              className="w-full rounded-md bg-flow-600 px-4 py-2 text-white hover:bg-flow-700">
-              Voltar
-            </button>
+            <h1 className="sgl-page-title" style={{ fontSize: "1.3rem", marginBottom: 12 }}>Erro</h1>
+            <p style={{ color: "var(--fg2)", fontSize: 13, marginBottom: 20 }}>{error}</p>
+            <button className="sgl-btn" onClick={() => router.push("/")}
+              style={{ width: "100%", justifyContent: "center" }}>Voltar</button>
           </>
         ) : (
           <>
-            <h1 className="mb-2 text-3xl font-bold text-green-600">✓ Concluido!</h1>
-            <p className="mb-6 text-gray-600">Seu procedimento foi registrado com sucesso.</p>
+            <div style={{ width: 56, height: 56, border: "1px solid var(--g20)", background: "var(--g12)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px", fontSize: 24, color: "var(--g)" }}>✓</div>
+            <h1 className="sgl-page-title" style={{ fontSize: "1.4rem", marginBottom: 8 }}>Concluido!</h1>
+            <p style={{ color: "var(--fg2)", fontSize: 12, marginBottom: 20 }}>
+              Seu procedimento foi registrado com sucesso.
+            </p>
 
-            <div className="mb-6 space-y-3 rounded-lg bg-green-50 p-4 text-left text-sm">
-              <p><strong>Protocolo:</strong> {result?.protocol_number}</p>
-              {result?.web3_tx_hash && <p><strong>Tx Hash:</strong> {result.web3_tx_hash.slice(0, 20)}...</p>}
-              {result?.audit_id && <p><strong>Auditoria:</strong> {result.audit_id}</p>}
+            <div className="sgl-hash-box" style={{ textAlign: "left", marginBottom: 8 }}>
+              <div className="sgl-hash-label">Numero de Protocolo</div>
+              <div className="sgl-hash-val">{result?.protocol_number}</div>
             </div>
-
-            <p className="text-xs text-gray-500">Guarde seu protocolo para referencia futura.</p>
+            <div className="sgl-hash-box" style={{ textAlign: "left", marginBottom: 8 }}>
+              <div className="sgl-hash-label">Hash da Evidencia</div>
+              <div className="sgl-hash-val">{result?.evidence_hash}</div>
+            </div>
+            {result?.web3_tx_hash && (
+              <div className="sgl-hash-box" style={{ textAlign: "left" }}>
+                <div className="sgl-hash-label">TX Hash (Sepolia)</div>
+                <div className="sgl-hash-val">{result.web3_tx_hash}</div>
+              </div>
+            )}
           </>
         )}
       </div>

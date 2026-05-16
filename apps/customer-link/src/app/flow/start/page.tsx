@@ -1,9 +1,9 @@
 "use client";
+import { Suspense, useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 
-export default function StartPage() {
+function StartContent() {
   const router = useRouter();
   const params = useSearchParams();
   const token = params.get("token") || "";
@@ -12,11 +12,7 @@ export default function StartPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!token) {
-      setError("Token nao fornecido");
-      setLoading(false);
-      return;
-    }
+    if (!token) { setError("Token nao fornecido"); setLoading(false); return; }
     api("/flow/open", { method: "POST", body: JSON.stringify({ token }) })
       .then((data) => {
         setContext(data);
@@ -27,27 +23,39 @@ export default function StartPage() {
       .finally(() => setLoading(false));
   }, [token]);
 
-  if (loading) return <div className="flex min-h-screen items-center justify-center">Abrindo link...</div>;
-  if (error) return <div className="flex min-h-screen items-center justify-center text-red-600">{error}</div>;
+  if (loading) return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--fg3)", fontFamily: "var(--mono)", fontSize: 11 }}>Abrindo link...</div>;
+  if (error) return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--r)", fontSize: 13 }}>{error}</div>;
   if (!context) return null;
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
-      <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-lg">
-        <h1 className="mb-2 text-2xl font-bold text-flow-700">Confirmacao e Assinatura</h1>
-        <p className="mb-6 text-gray-500">Procedimento: {context.procedure_type}</p>
+    <div className="sgl-auth-wrap">
+      <div className="sgl-auth-card sgl-fade-in">
+        <div className="sgl-brand">
+          <div className="sgl-brand-logo">SV</div>
+          <div className="sgl-brand-name">Singul<span>AI</span> Validate</div>
+        </div>
+        <div className="sgl-page-label" style={{ justifyContent: "center" }}>// Confirmacao e Assinatura</div>
 
-        <div className="mb-6 space-y-2 rounded-lg bg-flow-50 p-4">
-          <p className="text-sm"><strong>Tipo:</strong> {context.procedure_type}</p>
-          <p className="text-sm"><strong>Seu Papel:</strong> {context.participant_role}</p>
-          <p className="text-sm text-gray-500">{context.participant_email}</p>
+        <div className="sgl-hash-box" style={{ marginTop: 24, marginBottom: 24 }}>
+          <div className="sgl-hash-label">Tipo</div>
+          <div style={{ fontSize: 13, color: "var(--fg)", marginBottom: 12 }}>{context.procedure_type}</div>
+          <div className="sgl-hash-label">Seu Papel</div>
+          <div style={{ fontSize: 13, color: "var(--fg)" }}>{context.participant_role}</div>
         </div>
 
-        <button onClick={() => router.push("/flow/confirm")}
-          className="w-full rounded-md bg-flow-600 px-4 py-2 text-white hover:bg-flow-700">
+        <button className="sgl-btn" onClick={() => router.push("/flow/confirm")}
+          style={{ width: "100%", justifyContent: "center" }}>
           Proxima Etapa
         </button>
       </div>
     </div>
+  );
+}
+
+export default function StartPage() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: "100vh" }} />}>
+      <StartContent />
+    </Suspense>
   );
 }

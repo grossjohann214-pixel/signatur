@@ -8,7 +8,9 @@ export class AuthService {
   constructor(private prisma: PrismaService, private jwtService: JwtService) {}
 
   async validateUser(email: string, pass: string) {
-    const user: any = await this.prisma.partnerUser.findUnique({ where: { email } });
+    const user: any = await this.prisma.withBypass((tx) =>
+      tx.partnerUser.findUnique({ where: { email } }),
+    );
     if (!user) return null;
 
     const isMatch = await bcrypt.compare(pass, user.password);
@@ -25,7 +27,9 @@ export class AuthService {
 
   async validateJwtPayload(payload: any) {
     if (!payload || !payload.sub) throw new UnauthorizedException();
-    const user = await this.prisma.partnerUser.findUnique({ where: { id: payload.sub } });
+    const user: any = await this.prisma.withBypass((tx) =>
+      tx.partnerUser.findUnique({ where: { id: payload.sub } }),
+    );
     if (!user) throw new UnauthorizedException();
     const { password, ...result } = user;
     return result;

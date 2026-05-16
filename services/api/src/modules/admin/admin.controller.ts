@@ -1,42 +1,40 @@
-import { Controller, Get, Post, Param, Body, UseGuards } from '@nestjs/common';
-import { AdminService } from './admin.service';
+import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { RolesGuard } from '../auth/roles.guard';
-import { Roles } from '../auth/roles.decorator';
+import { AdminService } from './admin.service';
 
-@Controller('admin/partners')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('admin')
+@Controller('admin')
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
-  @Get('pending')
-  async listPending() {
-    return this.adminService.listPending();
+  @Get('partners/pending')
+  pendingPartners(@Req() req: any) {
+    return this.adminService.pendingPartners(req.user);
   }
 
-  @Get(':id')
-  async detail(@Param('id') id: string) {
-    return this.adminService.getPartnerDetail(id);
+  @Get('partners/:id')
+  getPartner(@Req() req: any, @Param('id') id: string) {
+    return this.adminService.getPartner(req.user, id);
   }
 
-  @Post(':id/approve')
-  async approve(@Param('id') id: string) {
-    return this.adminService.approve(id);
+  @Post('partners/:id/approve')
+  approve(@Req() req: any, @Param('id') id: string) {
+    return this.adminService.approve(req.user, id);
   }
 
-  @Post(':id/reject')
-  async reject(@Param('id') id: string, @Body() body?: { reason?: string }) {
-    return this.adminService.reject(id, body?.reason);
+  @Post('partners/:id/reject')
+  reject(@Req() req: any, @Param('id') id: string, @Body() body: any) {
+    return this.adminService.reject(req.user, id);
   }
 
-  @Post(':id/request-changes')
-  async requestChanges(@Param('id') id: string, @Body() body?: { reason?: string }) {
-    return this.adminService.requestChanges(id, body?.reason);
+  @Post('partners/:id/request-changes')
+  requestChanges(@Req() req: any, @Param('id') id: string, @Body() body: any) {
+    return this.adminService.requestChanges(req.user, id);
   }
 
-  @Post(':id/release-production')
-  async releaseProduction(@Param('id') id: string) {
-    return this.adminService.releaseProduction(id);
+  @Post('partners/:id/release-production')
+  releaseProduction(@Req() req: any, @Param('id') id: string) {
+    return this.adminService.releaseProduction(req.user, id);
   }
 }

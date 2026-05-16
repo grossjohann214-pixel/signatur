@@ -40,12 +40,15 @@ model PartnerBranding {
 }
 
 model PartnerTenant {
-  id         String   @id @default(uuid())
-  partner_id String   @unique
-  tenant_id  String
-  status     String   @default("configuring")
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  id                      String   @id @default(uuid())
+  partner_id              String   @unique
+  tenant_id               String
+  status                  String   @default("configuring")
+  production_released     Boolean  @default(false)
+  production_released_at  DateTime?
+  production_released_by  String?
+  created_at              DateTime @default(now())
+  updated_at              DateTime @updatedAt
 
   partner Partner @relation("PartnerTenantPartner", fields: [partner_id], references: [id])
 }

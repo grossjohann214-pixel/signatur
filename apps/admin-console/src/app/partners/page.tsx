@@ -4,12 +4,12 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
 
-const STATUS_MAP: Record<string, { label: string; color: string }> = {
-  pending_review: { label: "Aguardando Revisao", color: "bg-yellow-100 text-yellow-800" },
-  contract_accepted: { label: "Contrato Aceito", color: "bg-blue-100 text-blue-800" },
-  approved: { label: "Aprovado", color: "bg-green-100 text-green-800" },
-  rejected: { label: "Rejeitado", color: "bg-red-100 text-red-800" },
-  changes_requested: { label: "Ajustes Solicitados", color: "bg-orange-100 text-orange-800" },
+const STATUS_MAP: Record<string, { label: string; cls: string }> = {
+  pending_review: { label: "Aguardando Revisao", cls: "sgl-badge-y" },
+  contract_accepted: { label: "Contrato Aceito", cls: "sgl-badge-c" },
+  approved: { label: "Aprovado", cls: "sgl-badge-g" },
+  rejected: { label: "Rejeitado", cls: "sgl-badge-r" },
+  changes_requested: { label: "Ajustes Solicitados", cls: "sgl-badge-y" },
 };
 
 export default function PartnersPage() {
@@ -24,60 +24,72 @@ export default function PartnersPage() {
     api("/admin/partners/pending")
       .then(setPartners)
       .catch((err) => {
-        if (err.message.includes("401")) { localStorage.removeItem("admin_token"); router.push("/login"); }
+        if (String(err.message).includes("401")) { localStorage.removeItem("admin_token"); router.push("/login"); }
         else setError(err.message);
       })
       .finally(() => setLoading(false));
   }, [router]);
 
-  if (loading) return <div className="flex min-h-screen items-center justify-center">Carregando...</div>;
+  function logout() {
+    localStorage.removeItem("admin_token");
+    router.push("/login");
+  }
+
+  if (loading) {
+    return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--fg3)", fontFamily: "var(--mono)", fontSize: 11 }}>Carregando...</div>;
+  }
 
   return (
-    <div className="mx-auto max-w-6xl p-8">
-      <div className="mb-8 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-admin-700">Parceiros Pendentes</h1>
-        <button onClick={() => { localStorage.removeItem("admin_token"); router.push("/login"); }}
-          className="text-sm text-gray-500 hover:text-gray-700">Sair</button>
+    <div style={{ position: "relative", zIndex: 1, padding: 32, maxWidth: 1080, margin: "0 auto" }} className="sgl-fade-in">
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 32 }}>
+        <div>
+          <div className="sgl-page-label">// SingulAI Interno</div>
+          <h1 className="sgl-page-title">Parceiros Pendentes</h1>
+          <p className="sgl-page-sub">Revise e aprove o onboarding dos parceiros.</p>
+        </div>
+        <button className="sgl-btn-o" onClick={logout}>Sair</button>
       </div>
 
-      {error && <p className="mb-4 rounded bg-red-50 p-3 text-sm text-red-600">{error}</p>}
+      {error && <div className="sgl-alert sgl-alert-r">
+        <span style={{ color: "var(--r)", fontSize: 12 }}>{error}</span>
+      </div>}
 
       {partners.length === 0 ? (
-        <p className="text-center text-gray-500">Nenhum parceiro pendente</p>
-      ) : (
-        <div className="overflow-x-auto rounded-lg shadow">
-          <table className="w-full bg-white">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Razao Social</th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">CNPJ</th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Status</th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Criado em</th>
-                <th className="px-6 py-3 text-center text-sm font-semibold text-gray-900">Acoes</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {partners.map((p) => {
-                const st = STATUS_MAP[p.status] || { label: p.status, color: "bg-gray-100" };
-                return (
-                  <tr key={p.id}>
-                    <td className="px-6 py-4 text-sm">{p.company_name}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{p.cnpj || "N/A"}</td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-block rounded-full px-3 py-1 text-xs font-medium ${st.color}`}>{st.label}</span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{new Date(p.created_at).toLocaleDateString("pt-BR")}</td>
-                    <td className="px-6 py-4 text-center">
-                      <Link href={`/partners/${p.id}`} className="text-admin-600 hover:underline text-sm font-medium">
-                        Revisar
-                      </Link>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className="sgl-card" style={{ textAlign: "center", color: "var(--fg3)" }}>
+          Nenhum parceiro pendente
         </div>
+      ) : (
+        <table className="sgl-table">
+          <thead>
+            <tr>
+              <th>Razao Social</th>
+              <th>CNPJ</th>
+              <th>Status</th>
+              <th>Criado em</th>
+              <th>Acoes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {partners.map((p) => {
+              const st = STATUS_MAP[p.status] || { label: p.status, cls: "sgl-badge-muted" };
+              return (
+                <tr key={p.id}>
+                  <td style={{ color: "var(--fg)" }}>{p.company_name}</td>
+                  <td style={{ fontFamily: "var(--mono)", fontSize: 11 }}>{p.cnpj || "N/A"}</td>
+                  <td><span className={`sgl-badge ${st.cls}`}>{st.label}</span></td>
+                  <td style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--fg3)" }}>
+                    {new Date(p.created_at).toLocaleDateString("pt-BR")}
+                  </td>
+                  <td>
+                    <Link href={`/partners/${p.id}`} style={{ color: "var(--c)", fontSize: 12, fontWeight: 600 }}>
+                      Revisar
+                    </Link>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       )}
     </div>
   );

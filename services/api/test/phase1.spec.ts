@@ -4,6 +4,7 @@ import { AdminService } from '../src/modules/admin/admin.service';
 import { AuthService } from '../src/modules/auth/auth.service';
 import { ProductionGuard } from '../src/modules/auth/production.guard';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { enableBypass } from './helpers/rls';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 
@@ -29,6 +30,7 @@ describe('Phase 1 - Backend Core', () => {
     authService = module.get(AuthService);
     prisma = module.get(PrismaService);
     await prisma.$connect();
+    await enableBypass(prisma);
   });
 
   afterAll(async () => {

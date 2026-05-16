@@ -30,27 +30,48 @@ export default function ContractPage() {
     }
   }
 
-  if (!contract && !error) return <div className="flex min-h-screen items-center justify-center">Carregando...</div>;
+  if (!contract && !error) {
+    return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--fg3)", fontFamily: "var(--mono)", fontSize: 11 }}>Carregando...</div>;
+  }
 
   return (
-    <div className="mx-auto max-w-3xl p-8">
-      <h1 className="mb-6 text-2xl font-bold text-brand-700">Contrato de Parceria</h1>
-      {error && <p className="mb-4 rounded bg-red-50 p-3 text-sm text-red-600">{error}</p>}
-      {accepted && <p className="mb-4 rounded bg-green-50 p-3 text-sm text-green-600">Contrato aceito! Aguarde aprovacao.</p>}
+    <div style={{ position: "relative", zIndex: 1, padding: 32, maxWidth: 720, margin: "0 auto" }} className="sgl-fade-in">
+      <div className="sgl-page-label">// Onboarding</div>
+      <h1 className="sgl-page-title" style={{ marginBottom: 24 }}>Contrato de Parceria</h1>
+
+      {error && <div className="sgl-alert sgl-alert-r">
+        <span style={{ color: "var(--r)", fontSize: 12 }}>{error}</span>
+      </div>}
+      {accepted && <div className="sgl-alert sgl-alert-g">
+        <span style={{ color: "var(--g)", fontSize: 12 }}>Contrato aceito! Aguarde aprovacao.</span>
+      </div>}
+
       {contract && (
         <>
-          <div className="mb-4 rounded-lg bg-white p-6 shadow" dangerouslySetInnerHTML={{ __html: contract.generated_html }} />
-          <p className="mb-4 text-xs text-gray-400">Hash: {contract.contract_hash}</p>
+          <div className="sgl-card" style={{ marginBottom: 12 }}>
+            <div dangerouslySetInnerHTML={{ __html: contract.generated_html }} />
+          </div>
+          <div className="sgl-hash-box" style={{ marginBottom: 16 }}>
+            <div className="sgl-hash-label">Contract Hash (SHA-256)</div>
+            <div className="sgl-hash-val">{contract.contract_hash}</div>
+          </div>
           {contract.status === "generated" && !accepted && (
-            <button onClick={handleAccept} disabled={loading}
-              className="w-full rounded-md bg-brand-600 px-4 py-2 text-white hover:bg-brand-700 disabled:opacity-50">
+            <button className="sgl-btn" disabled={loading} onClick={handleAccept}
+              style={{ width: "100%", justifyContent: "center" }}>
               {loading ? "Aceitando..." : "Aceitar Contrato"}
             </button>
           )}
-          {contract.status === "accepted" && <p className="text-center text-green-600 font-medium">Contrato ja aceito</p>}
+          {contract.status === "accepted" && (
+            <div className="sgl-alert sgl-alert-g">
+              <span style={{ color: "var(--g)", fontSize: 12 }}>Contrato ja aceito</span>
+            </div>
+          )}
         </>
       )}
-      <a href="/dashboard" className="mt-4 block text-center text-sm text-brand-600 hover:underline">Voltar</a>
+
+      <p style={{ marginTop: 16, textAlign: "center", fontSize: 12 }}>
+        <a href="/dashboard" style={{ color: "var(--c)" }}>Voltar ao Dashboard</a>
+      </p>
     </div>
   );
 }

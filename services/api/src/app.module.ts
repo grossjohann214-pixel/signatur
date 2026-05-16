@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { PartnerModule } from './modules/partner/partner.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { CustomerModule } from './modules/customer/customer.module';
@@ -12,6 +12,7 @@ import { MagicLinkModule } from './modules/magiclink/magiclink.module';
 import { EvidenceModule } from './modules/evidence/evidence.module';
 import { Web3Module } from './modules/web3/web3.module';
 import { AuditModule } from './modules/audit/audit.module';
+import { TenantTransactionInterceptor } from './modules/tenant/tenant-transaction.interceptor';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { AuditModule } from './modules/audit/audit.module';
   providers: [
     PrismaService,
     { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_INTERCEPTOR, useClass: TenantTransactionInterceptor },
   ],
 })
 export class AppModule {}

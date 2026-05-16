@@ -1,19 +1,24 @@
 "use client";
+import { Suspense, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useEffect } from "react";
 
-export default function Home() {
+function Redirector() {
   const router = useRouter();
   const params = useSearchParams();
   const token = params.get("token");
-
   useEffect(() => {
-    if (token) {
-      router.push(`/flow/start?token=${token}`);
-    } else {
-      router.push("/flow/start");
-    }
+    router.push(token ? `/flow/start?token=${token}` : "/flow/start");
   }, [token, router]);
+  return null;
+}
 
-  return <div className="flex min-h-screen items-center justify-center">Carregando...</div>;
+export default function Home() {
+  return (
+    <Suspense fallback={null}>
+      <Redirector />
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--fg3)", fontFamily: "var(--mono)", fontSize: 11 }}>
+        Carregando...
+      </div>
+    </Suspense>
+  );
 }

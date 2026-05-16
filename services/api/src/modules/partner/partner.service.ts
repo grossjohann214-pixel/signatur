@@ -1,68 +1,102 @@
-import { Injectable, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import * as crypto from 'crypto';
+import { createHash, randomUUID } from 'crypto';
+import { PrismaService } from '../../prisma/prisma.service';
+import { CreatePartnerDto } from './dto/create-partner.dto';
+
+const ALLOWED_PROCEDURE_TYPES = [
+  'confirmacao_cadastral', 'assinatura_de_termo', 'autorizacao_de_servico',
+  'liberacao_de_execucao', 'ressarcimento', 'quitacao', 'declaracao_de_ciencia',
+  'validacao_de_beneficiario', 'contrato_com_testemunhas', 'prestacao_de_servico',
+  'termo_juridico', 'termo_contabil', 'outro_procedimento',
+];
+
+function sha256(input: string) {
+  return createHash('sha256').update(input).digest('hex');
+}
+
+function canonicalJson(payload: Record<string, any>) {
+  return JSON.stringify(
+    Object.keys(payload).sort().reduce((acc, k) => {
+      acc[k] = payload[k];
+      return acc;
+    }, {} as Record<string, any>),
+  );
+}
 
 @Injectable()
 export class PartnerService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
-  async register(data: {
-    company_name: string;
-    cnpj?: string;
-    trading_name?: string;
-    owner_email: string;
-    owner_password: string;
-    owner_name?: string;
-  }) {
-    const existing = await this.prisma.partnerUser.findUnique({
-      where: { email: data.owner_email },
-    });
-    if (existing) throw new BadRequestException('Email already registered');
+  async register(body: CreatePartnerDto & Record<string, any>) {
+    const email = (body.owner_email || body.email)?.toLowerCase?.().trim();
+    const password = body.owner_password || body.password;
 
-    const tenantId = crypto.randomUUID();
-    const passwordHash = await bcrypt.hash(data.owner_password, 12);
+    if (!email || !password) {
+      throw new BadRequestException('email and password are required');
+    }
 
-    return this.prisma.$transaction(async (tx) => {
+
+    const tenantId = randomUUID();
+    const passwordHash = await bcrypt.hash(password, 10);
+    const companyName = body.company_name || body.companyName || body.name || 'Partner';
+
+    const result = await this.prisma.withBypass(async (tx) => {
+      const existing = await tx.partnerUser.findUnique({ where: { email } });
+      if (existing) throw new BadRequestException("Email already registered");
+
       const partner = await tx.partner.create({
         data: {
           tenant_id: tenantId,
-          company_name: data.company_name,
-          cnpj: data.cnpj || null,
-          trading_name: data.trading_name || null,
+          company_name: companyName,
+          cnpj: body.cnpj || null,
+          trading_name: body.trading_name || null,
           status: 'draft',
           production_released: false,
           created_by: 'self_registration',
         },
       });
 
-      await tx.partnerTenant.create({
+      const tenant = await tx.partnerTenant.create({
         data: {
           partner_id: partner.id,
           tenant_id: tenantId,
           status: 'configuring',
+          production_released: false,
         },
       });
 
-      const user = await tx.partnerUser.create({
+      const partnerUser = await tx.partnerUser.create({
         data: {
           partner_id: partner.id,
           tenant_id: tenantId,
-          email: data.owner_email,
+          email,
           password: passwordHash,
           role: 'admin',
           is_owner: true,
         },
       });
 
-      return {
-        partner_id: partner.id,
-        tenant_id: tenantId,
-        user_id: user.id,
-        email: user.email,
-        status: partner.status,
-      };
+      await tx.partnerBranding.create({
+        data: { partner_id: partner.id, display_name: body.display_name || companyName },
+      });
+
+      return { partner, tenant, partnerUser };
     });
+
+    return {
+      partner_id: result.partner.id,
+      tenant_id: tenantId,
+      user_id: result.partnerUser.id,
+      email: result.partnerUser.email,
+      status: result.partner.status,
+      production_released: result.partner.production_released,
+    };
   }
 
   async findById(id: string): Promise<any> {
@@ -70,6 +104,10 @@ export class PartnerService {
     const partner = await this.prisma.partner.findUnique({ where: { id } });
     if (!partner) throw new NotFoundException('Partner not found');
     return partner;
+  }
+
+  async me(user: any) {
+    return this.findById(user.partner_id || user.partnerId);
   }
 
   async getStatus(partnerId: string) {
@@ -80,20 +118,33 @@ export class PartnerService {
     };
   }
 
-  async createScopeRequest(partnerId: string, tenantId: string, data: { request_type: string; description?: string }) {
+  async status(user: any) {
+    return this.getStatus(user.partner_id || user.partnerId);
+  }
+
+  private resolveScopeArgs(a: any, b: any, c?: any) {
+    const legacy = typeof a === 'string' && typeof b === 'string';
+    return {
+      partnerId: legacy ? a : a.partner_id || a.partnerId,
+      tenantId: legacy ? b : a.tenant_id || a.tenantId,
+      body: legacy ? c || {} : b || {},
+    };
+  }
+
+  async createScopeRequest(a: any, b: any, c?: any) {
+    const { partnerId, tenantId, body } = this.resolveScopeArgs(a, b, c);
+
+    const requestType = body.request_type
+      || (Array.isArray(body.procedure_types) ? body.procedure_types[0] : undefined);
+
+    if (!requestType) throw new BadRequestException('request_type is required');
+    if (!ALLOWED_PROCEDURE_TYPES.includes(requestType)) {
+      throw new BadRequestException('Invalid request_type');
+    }
+
     const partner = await this.findById(partnerId);
     if (partner.status !== 'draft' && partner.status !== 'changes_requested') {
       throw new ForbiddenException('Cannot request scope in current status');
-    }
-
-    const ALLOWED_TYPES = [
-      'confirmacao_cadastral', 'assinatura_de_termo', 'autorizacao_de_servico',
-      'liberacao_de_execucao', 'ressarcimento', 'quitacao', 'declaracao_de_ciencia',
-      'validacao_de_beneficiario', 'contrato_com_testemunhas', 'prestacao_de_servico',
-      'termo_juridico', 'termo_contabil', 'outro_procedimento',
-    ];
-    if (!ALLOWED_TYPES.includes(data.request_type)) {
-      throw new BadRequestException('Invalid request_type');
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -101,8 +152,8 @@ export class PartnerService {
         data: {
           partner_id: partnerId,
           tenant_id: tenantId,
-          request_type: data.request_type,
-          description: data.description || null,
+          request_type: requestType,
+          description: body.description || null,
           status: 'pending_review',
         },
       });
@@ -112,10 +163,33 @@ export class PartnerService {
         data: { status: 'pending_review' },
       });
 
-      // Auto-generate contract
-      await this.generateContract(tx, partnerId, tenantId);
+      const existing = await tx.partnerContract.findUnique({ where: { partner_id: partnerId } });
+      if (!existing) {
+        const html = `<h1>Contrato de Parceria SingulAI Validate</h1>
+<p>Parceiro: ${partner.company_name}</p>
+<p>CNPJ: ${partner.cnpj || 'N/A'}</p>
+<p>Escopo: ${requestType}</p>`;
+        const hash = sha256(canonicalJson({ partner_id: partnerId, tenant_id: tenantId, html }));
+        await tx.partnerContract.create({
+          data: {
+            partner_id: partnerId,
+            tenant_id: tenantId,
+            status: 'generated',
+            contract_hash: hash,
+            generated_html: html,
+          },
+        });
+      }
 
       return scope;
+    });
+  }
+
+  async getScopeRequest(user: any) {
+    const partnerId = user.partner_id || user.partnerId;
+    return this.prisma.partnerScopeRequest.findMany({
+      where: { partner_id: partnerId },
+      orderBy: { created_at: 'desc' },
     });
   }
 
@@ -134,7 +208,16 @@ export class PartnerService {
     return contract;
   }
 
-  async acceptContract(partnerId: string, userId: string, ip?: string, userAgent?: string) {
+  async generatedContract(user: any) {
+    return this.getGeneratedContract(user.partner_id || user.partnerId);
+  }
+
+  async acceptContract(a: any, b?: any, ip?: string, userAgent?: string) {
+    const legacy = typeof a === 'string';
+    const partnerId = legacy ? a : a.partner_id || a.partnerId;
+    const userId = legacy ? b : a.sub || a.id;
+    const meta = legacy ? { ip, userAgent } : (b || {});
+
     const contract = await this.prisma.partnerContract.findUnique({
       where: { partner_id: partnerId },
     });
@@ -152,9 +235,9 @@ export class PartnerService {
         data: {
           status: 'accepted',
           accepted_at: new Date(),
-          accepted_by: userId,
-          accepted_ip: ip || null,
-          accepted_user_agent: userAgent || null,
+          accepted_by: userId || null,
+          accepted_ip: meta.ip || null,
+          accepted_user_agent: meta.userAgent || null,
         },
       });
 
@@ -167,29 +250,11 @@ export class PartnerService {
     });
   }
 
-  private async generateContract(tx: any, partnerId: string, tenantId: string) {
-    const existing = await tx.partnerContract.findUnique({
-      where: { partner_id: partnerId },
-    });
-    if (existing) return existing;
-
-    const partner = await tx.partner.findUnique({ where: { id: partnerId } });
-    const html = `<h1>Contrato de Parceria SingulAI Validate</h1>
-<p>Parceiro: ${partner.company_name}</p>
-<p>CNPJ: ${partner.cnpj || 'N/A'}</p>
-<p>Gerado em: ${new Date().toISOString()}</p>
-<p>Este contrato estabelece os termos de uso da plataforma SingulAI Validate.</p>`;
-
-    const hash = crypto.createHash('sha256').update(html).digest('hex');
-
-    return tx.partnerContract.create({
-      data: {
-        partner_id: partnerId,
-        tenant_id: tenantId,
-        status: 'generated',
-        contract_hash: hash,
-        generated_html: html,
-      },
-    });
+  async assertProductionReleased(partnerId: string) {
+    const partner = await this.findById(partnerId);
+    if (!partner.production_released) {
+      throw new ForbiddenException('production not released for this partner');
+    }
+    return true;
   }
 }
