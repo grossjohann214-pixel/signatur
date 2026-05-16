@@ -57,3 +57,15 @@ tmp/
 temp/
 *.tmp
 .env.*
+
+# Local build/cache artifacts
+*.tsbuildinfo
+*.bak
+*.bak.*
+services/api/*.bak.*
+services/api/*.tsbuildinfo
+
+# Local env files
+.env
+.env.*
+!.env.example
