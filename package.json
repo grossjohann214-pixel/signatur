@@ -1,0 +1,48 @@
+{
+  "name": "singulai-validate",
+  "version": "0.1.0",
+  "private": true,
+  "description": "White Label Authorization & Execution Layer with Web3 anchoring",
+  "author": "SingulAI <dev@singulai.com>",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "dotenv": "^16.4.0",
+    "zod": "^4.4.3"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "dev:portal": "turbo run dev --filter=partner-portal",
+    "dev:link": "turbo run dev --filter=customer-link",
+    "dev:admin": "turbo run dev --filter=admin-console",
+    "dev:api": "turbo run dev --filter=api",
+    "build": "turbo run build",
+    "build:portal": "turbo run build --filter=partner-portal",
+    "build:contracts": "cd contracts && npx hardhat compile",
+    "test": "turbo run test",
+    "test:unit": "turbo run test:unit",
+    "test:e2e": "turbo run test:e2e",
+    "test:contracts": "cd contracts && npx hardhat test",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "typecheck": "turbo run typecheck",
+    "db:migrate": "cd services/api && pnpm prisma migrate dev",
+    "db:seed": "cd services/api && pnpm prisma db seed",
+    "db:studio": "cd services/api && pnpm prisma studio",
+    "db:generate": "cd services/api && pnpm prisma generate",
+    "contracts:compile": "cd contracts && npx hardhat compile",
+    "contracts:test": "cd contracts && npx hardhat test",
+    "contracts:deploy": "cd contracts && npx hardhat run scripts/deploy.ts --network sepolia",
+    "clean": "turbo run clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "prettier": "^3.1.0",
+    "turbo": "^1.11.0",
+    "typescript": "^5.3.3"
+  },
+  "packageManager": "pnpm@8.15.0"
+}

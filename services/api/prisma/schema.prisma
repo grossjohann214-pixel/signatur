@@ -1,0 +1,201 @@
+// Prisma schema para SingulAI Validate — FASE 1
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Partner {
+  id                  String   @id @default(uuid())
+  tenant_id           String
+  company_name        String
+  cnpj                String?
+  trading_name        String?
+  status              String   @default("pending_review")
+  production_released Boolean  @default(false)
+  created_by          String?
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+
+  PartnerBranding      PartnerBranding?      @relation("PartnerBrandingPartner")
+  PartnerTenant        PartnerTenant?        @relation("PartnerTenantPartner")
+  PartnerContract      PartnerContract?      @relation("PartnerContractPartner")
+  PartnerResponsible   PartnerResponsible[]
+  PartnerUsers         PartnerUser[]
+  PartnerScopeRequests PartnerScopeRequest[]
+}
+
+model PartnerBranding {
+  id              String  @id @default(uuid())
+  partner_id      String  @unique
+  logo_url        String?
+  primary_color   String?
+  secondary_color String?
+  display_name    String?
+
+  partner Partner @relation("PartnerBrandingPartner", fields: [partner_id], references: [id])
+}
+
+model PartnerTenant {
+  id         String   @id @default(uuid())
+  partner_id String   @unique
+  tenant_id  String
+  status     String   @default("configuring")
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  partner Partner @relation("PartnerTenantPartner", fields: [partner_id], references: [id])
+}
+
+model PartnerResponsible {
+  id         String   @id @default(uuid())
+  partner_id String
+  name       String
+  email      String
+  phone      String?
+  role       String
+  created_at DateTime @default(now())
+
+  partner Partner @relation(fields: [partner_id], references: [id])
+}
+
+model PartnerScopeRequest {
+  id           String   @id @default(uuid())
+  partner_id   String
+  tenant_id    String
+  request_type String
+  description  String?
+  status       String   @default("pending_review")
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  partner Partner @relation(fields: [partner_id], references: [id])
+}
+
+model PartnerContract {
+  id                  String    @id @default(uuid())
+  partner_id          String    @unique
+  tenant_id           String
+  status              String    @default("generated")
+  contract_hash       String
+  generated_html      String
+  generated_at        DateTime  @default(now())
+  accepted_at         DateTime?
+  accepted_by         String?
+  accepted_ip         String?
+  accepted_user_agent String?
+  updated_at          DateTime  @updatedAt
+
+  partner Partner @relation("PartnerContractPartner", fields: [partner_id], references: [id])
+}
+
+model PartnerUser {
+  id         String   @id @default(uuid())
+  partner_id String
+  tenant_id  String
+  email      String   @unique
+  password   String
+  role       String
+  is_owner   Boolean  @default(false)
+  created_at DateTime @default(now())
+
+  partner Partner @relation(fields: [partner_id], references: [id])
+}
+
+model Customer {
+  id              String   @id @default(uuid())
+  tenant_id       String
+  partner_id      String
+  name            String
+  document_masked String?
+  email           String?
+  created_at      DateTime @default(now())
+
+  wallets CustomerWallet[]
+}
+
+model CustomerWallet {
+  id             String   @id @default(uuid())
+  customer_id    String
+  wallet_address String
+  network        String
+  created_at     DateTime @default(now())
+
+  customer Customer @relation(fields: [customer_id], references: [id])
+}
+
+model Procedure {
+  id            String   @id @default(uuid())
+  tenant_id     String
+  partner_id    String
+  customer_id   String?
+  type          String
+  template_id   String?
+  status        String
+  document_hash String?
+  created_by    String?
+  created_at    DateTime @default(now())
+}
+
+model ProcedureParticipant {
+  id              String    @id @default(uuid())
+  procedure_id    String
+  role            String
+  email           String?
+  phone           String?
+  document_masked String?
+  wallet_address  String?
+  signature_hash  String?
+  status          String
+  completed_at    DateTime?
+}
+
+model ProcedureLink {
+  id             String    @id @default(uuid())
+  procedure_id   String
+  participant_id String
+  token_hash     String
+  status         String
+  opened_at      DateTime?
+  completed_at   DateTime?
+  revoked_at     DateTime?
+  expires_at     DateTime?
+  created_at     DateTime  @default(now())
+}
+
+model Evidence {
+  id                String   @id @default(uuid())
+  procedure_id      String?
+  contract_id       String?
+  schema_version    String
+  evidence_hash     String
+  protocol_number   String?
+  web3_tx_hash      String?
+  audit_response_id String?
+  created_at        DateTime @default(now())
+}
+
+model Web3Transaction {
+  id           String    @id @default(uuid())
+  procedure_id String
+  tx_hash      String
+  block_number Int?
+  status       String
+  timestamp    DateTime?
+}
+
+model AuditRecord {
+  id          String   @id @default(uuid())
+  entity_type String
+  entity_id   String
+  action      String
+  old_value   Json?
+  new_value   Json?
+  actor_id    String?
+  ip_address  String?
+  user_agent  String?
+  timestamp   DateTime @default(now())
+}
